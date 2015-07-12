@@ -1,0 +1,18 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+#pragma once
+
+#include "GameFramework/GameMode.h"
+#include "TemporalFluxArenaGameMode.generated.h"
+
+
+UCLASS(minimalapi)
+class ATemporalFluxArenaGameMode : public AGameMode
+{
+	GENERATED_BODY()
+
+public:
+	ATemporalFluxArenaGameMode();
+};
+
+
+
