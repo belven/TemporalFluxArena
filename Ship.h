@@ -91,6 +91,46 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Stats")
 		float GetEnergy();
 
+	/** Returns ShipMeshComponent subobject **/
+	FORCEINLINE class UStaticMeshComponent* GetShipMeshComponent() const { return ShipMeshComponent; }
+	/** Returns CameraComponent subobject **/
+	FORCEINLINE class UCameraComponent* GetCameraComponent() const { return CameraComponent; }
+	/** Returns CameraBoom subobject **/
+	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+
+	void HitByProjectile(ABaseProjectile* damager);
+	USphereComponent* GetAoeDetection();
+
+	void ActivateAbility();
+	void UpdateStats();
+
+	void OnRep_EnergyChanged();
+	void OnRep_HealthChanged();
+	void OnRep_ShieldsChanged();
+
+	void WeaponOne();
+	void WeaponThree();
+	void WeaponTwo();
+
+	void SetEnergy(float newVal);
+	void SetHealth(float newVal);
+	void SetShield(float newVal);
+
+	float GetMaxEnergy();
+	float GetMaxHealth();
+	float GetMaxShield();
+
+	void SetMaxEnergy(float newVal);
+	void SetMaxHealth(float newVal);
+	void SetMaxShield(float newVal);
+
+
+	/** Handle for efficient management of ShotTimerExpired timer */
+	FTimerHandle TimerHandle_ShotTimerExpired;
+
+
+	UFUNCTION()
+		void ResetCanFire();
 private:
 
 	float maxHealth;
@@ -121,17 +161,5 @@ private:
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 
 	ABaseHUD* hud;
-public:
-	/** Returns ShipMeshComponent subobject **/
-	FORCEINLINE class UStaticMeshComponent* GetShipMeshComponent() const { return ShipMeshComponent; }
-	/** Returns CameraComponent subobject **/
-	FORCEINLINE class UCameraComponent* GetCameraComponent() const { return CameraComponent; }
-	/** Returns CameraBoom subobject **/
-	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-
-	void HitByProjectile(ABaseProjectile* damager);
-	USphereComponent* GetAoeDetection();
-
-	void ActivateAbility();
 };
 

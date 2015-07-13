@@ -26,6 +26,7 @@ void UTeleport::Activate(AShip* owner){
 			const FVector Normal2D = Hit.Normal.GetSafeNormal2D();
 			const FVector Deflection = FVector::VectorPlaneProject(Movement, Normal2D) * (1.f - Hit.Time);
 			owner->GetRootComponent()->MoveComponent(Deflection, NewRotation, true);
+			owner->UpdateStats();
 		}
 	}
 }

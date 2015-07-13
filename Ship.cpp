@@ -4,11 +4,12 @@
 #include "Ship.h"
 #include "BaseProjectile.h"
 #include "Weapon.h"
-#include "Teleport.h"
+#include "SpeedBoost.h"
 #include "TimerManager.h"
 #include "Engine.h"
 #include "ShipController.h"
 #include "UnrealNetwork.h"
+#include "ProjectileData.h"
 
 const FName AShip::MoveForwardBinding("MoveForward");
 const FName AShip::MoveRightBinding("MoveRight");
@@ -23,7 +24,7 @@ AShip::AShip()
 	RootComponent = ShipMeshComponent;
 	ShipMeshComponent->SetCollisionProfileName(UCollisionProfile::Pawn_ProfileName);
 	ShipMeshComponent->SetStaticMesh(ShipMesh.Object);
-	
+
 	// Create a camera boom...
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->AttachTo(RootComponent);
@@ -86,22 +87,44 @@ void AShip::BeginPlay()
 	health = maxHealth;
 	shield = maxShield;
 	energy = maxEnergy;
-	
+
 	shieldRegen = 20;
 	energyRegen = 15;
 
 	canRegenShields = true;
 	canRegenEnergy = true;
 
-	//weapons = *new TArray<UWeapon*>();
-	//weapons.Add(UWeapon::CreateWeapon(this, 100, 0.5, 0.1, FVector(90.f, 0.f, 0.f)));
-	//weapons.Add(UWeapon::CreateWeapon(this, 100, 0.1f, 0.1f, FVector(300.f, -110, -110)));
+	FProjectileData data;
+	data.cost = 20;
+	data.damage = 60;
+	data.speed = 1.2;
 
-	currentWeapon = UWeapon::CreateWeapon(this, 100, 0.5, 0.1, FVector(90.f, 0.f, 0.f));
+	weapons = *new TArray<UWeapon*>();
+
+	weapons.Add(UWeapon::CreateWeapon(this, 1, FVector(90.f, 0.f, 0.f)));
+
+	weapons[0]->SetProjectileData(data);
+
+	data.cost = 1;
+	data.damage = 5;
+	data.speed = 4;
+
+	weapons.Add(UWeapon::CreateWeapon(this, 0.1, FVector(90.f, 0.f, 0.f)));
+	weapons[1]->SetProjectileData(data);
+
+
+	weapons.Add(UWeapon::CreateWeapon(this, 0.5, FVector(90.f, 0.f, 0.f)));
+	weapons[2]->SetProjectileData(data);
+
+	data.cost = 10;
+	data.damage = 15;
+	data.speed = 2;
+
+	currentWeapon = weapons[0];
 
 	abilities = *new TArray<UAbility*>();
-	abilities.Add(UTeleport::CreateAbility());
-	abilities[0]->SetCooldown(1);
+	abilities.Add(USpeedBoost::CreateAbility());
+	abilities[0]->SetCooldown(3);
 }
 
 void AShip::SetupPlayerInputComponent(class UInputComponent* InputComponent)
@@ -113,7 +136,11 @@ void AShip::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 	InputComponent->BindAxis(MoveRightBinding);
 	InputComponent->BindAxis(FireForwardBinding);
 	InputComponent->BindAxis(FireRightBinding);
+
 	InputComponent->BindAction("ActivateAbility", EInputEvent::IE_Released, this, &AShip::ActivateAbility);
+	InputComponent->BindAction("WeaponOne", EInputEvent::IE_Released, this, &AShip::WeaponOne);
+	InputComponent->BindAction("WeaponTwo", EInputEvent::IE_Released, this, &AShip::WeaponTwo);
+	InputComponent->BindAction("WeaponThree", EInputEvent::IE_Released, this, &AShip::WeaponThree);
 }
 
 void AShip::ActivateAbility() {
@@ -165,18 +192,21 @@ void AShip::Move(float DeltaSeconds){
 	if (Movement.SizeSquared() > 0.0f)
 	{
 		const FRotator NewRotation = Movement.Rotation();
-		FHitResult Hit(1.f);
+		FHitResult Hit(10.f);
 		RootComponent->MoveComponent(Movement, NewRotation, true, &Hit);
 
-		if (Hit.IsValidBlockingHit())
-		{
-			const FVector Normal2D = Hit.Normal.GetSafeNormal2D();
-			const FVector Deflection = FVector::VectorPlaneProject(Movement, Normal2D) * (1.f - Hit.Time);
-			RootComponent->MoveComponent(Deflection, NewRotation, true);
-		}
+		//if (Hit.IsValidBlockingHit())
+		//{
+		const FVector Normal2D = Hit.Normal.GetSafeNormal2D();
+		const FVector Deflection = FVector::VectorPlaneProject(Movement, Normal2D) * (1.f - Hit.Time);
+		RootComponent->MoveComponent(Deflection, NewRotation, true);
+		//}
 	}
 }
 
+/**
+ * Begin Actor Interface
+ */
 void AShip::Tick(float DeltaSeconds)
 {
 	Regenerate(DeltaSeconds);
@@ -190,13 +220,15 @@ void AShip::Tick(float DeltaSeconds)
 	// Try and fire a shot
 	FireShot(FireDirection);
 
-	location = RootComponent->GetComponentLocation();
-	rotation = RootComponent->GetComponentRotation();
+	UpdateStats();
 }
 
+/**
+ * Fire a shot in the specified direction
+ */
 void AShip::FireShot(FVector FireDirection)
 {
-	if (currentWeapon != NULL && currentWeapon->CanFire() && energy > 5)
+	if (currentWeapon != NULL && currentWeapon->CanFire() && energy > currentWeapon->GetProjectileData().cost)
 	{
 		if (currentWeapon->Fire(this, FireDirection)){
 
@@ -207,6 +239,10 @@ void AShip::FireShot(FVector FireDirection)
 			GetWorld()->GetTimerManager().SetTimer(TimerHandle_CanRegenEnergyExpired, this, &AShip::ResetCanRegenEnergy, 1.5);
 		}
 	}
+}
+
+void AShip::ResetCanFire() {
+	currentWeapon->bCanFire = true;
 }
 
 USphereComponent* AShip::GetAoeDetection(){
@@ -260,4 +296,93 @@ float AShip::GetShield(){
 
 float AShip::GetEnergy(){
 	return energy;
+}
+
+void AShip::UpdateStats(){
+	location = RootComponent->GetComponentLocation();
+	rotation = RootComponent->GetComponentRotation();
+}
+
+
+void AShip::OnRep_EnergyChanged(){
+
+}
+
+
+void AShip::OnRep_HealthChanged(){
+
+}
+
+
+void AShip::OnRep_ShieldsChanged(){
+
+}
+
+
+void AShip::WeaponOne(){
+	currentWeapon = weapons[0];
+}
+
+
+void AShip::WeaponThree(){
+	currentWeapon = weapons[1];
+}
+
+
+void AShip::WeaponTwo(){
+	currentWeapon = weapons[2];
+}
+
+
+void AShip::SetEnergy(float newVal){
+
+	energy = newVal;
+}
+
+
+void AShip::SetHealth(float newVal){
+
+	health = newVal;
+}
+
+
+void AShip::SetShield(float newVal){
+
+	shield = newVal;
+}
+
+
+float AShip::GetMaxEnergy(){
+
+	return maxEnergy;
+}
+
+
+float AShip::GetMaxHealth(){
+
+	return maxHealth;
+}
+
+
+float AShip::GetMaxShield(){
+
+	return maxShield;
+}
+
+
+void AShip::SetMaxEnergy(float newVal){
+
+	maxEnergy = newVal;
+}
+
+
+void AShip::SetMaxHealth(float newVal){
+
+	maxHealth = newVal;
+}
+
+
+void AShip::SetMaxShield(float newVal){
+
+	maxShield = newVal;
 }

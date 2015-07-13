@@ -12,12 +12,12 @@ UWeapon::UWeapon() {
 
 	// Weapon
 	offset = FVector(90.f, 0.f, 0.f);
-	fireRate = 0.5f;
+	weaponFireRate = 0.5f;
 	bCanFire = true;
 
 	projectileData.damage = 20;
-	projectileData.cost = 5;
-	projectileData.speed = 300;
+	projectileData.cost = 1;
+	projectileData.speed = 4000;
 }
 
 bool UWeapon::Fire(AShip* owner, FVector FireDirection) {
@@ -35,7 +35,7 @@ bool UWeapon::Fire(AShip* owner, FVector FireDirection) {
 			// spawn the projectile
 			ABaseProjectile* projectile = World->SpawnActor<ABaseProjectile>(SpawnLocation, FireRotation);
 			projectile->SetDamage(projectileData.damage);
-			projectile->SetSpeed(projectileData.speed);
+			projectile->SetSpeed(owner->MoveSpeed * projectileData.speed);
 
 			Fired(World);
 
@@ -51,19 +51,16 @@ bool UWeapon::Fire(AShip* owner, FVector FireDirection) {
 	return false;
 }
 
-
 void UWeapon::Fired(UWorld* const World){
 	if (World) {
 		bCanFire = false;
-		World->GetTimerManager().SetTimer(TimerHandle_ShotTimerExpired, this, &UWeapon::ResetCanFire, 0.2);
+		World->GetTimerManager().SetTimer(TimerHandle_ShotTimerExpired, this, &UWeapon::ResetCanFire, weaponFireRate);
 	}
 }
 
-UWeapon* UWeapon::CreateWeapon(AActor* other, int ammo, int fireRate, int ammoRechargeRate, FVector offset) {
+UWeapon* UWeapon::CreateWeapon(AActor* other, float fireRate,  FVector offset) {
 	UWeapon* newWeapon = NewObject<UWeapon>(UWeapon::StaticClass());
-	newWeapon->ammo = ammo;
 	newWeapon->SetFireRate(fireRate);
-	newWeapon->ammoRechargeRate = ammoRechargeRate;
 	newWeapon->offset = offset;
 	return newWeapon;
 }
@@ -72,32 +69,21 @@ void UWeapon::ResetCanFire() {
 	bCanFire = true;
 }
 
-int UWeapon::GetAmmo() {
-	return ammo;
-}
-
-float UWeapon::GetAmmoRechargeRate() {
-	return ammoRechargeRate;
-}
-
 float UWeapon::GetFireRate() {
-	return fireRate;
+	return weaponFireRate;
 }
 
 void UWeapon::SetFireRate(float newRate){
-	fireRate = newRate;
+	weaponFireRate = newRate;
 }
 
 bool UWeapon::CanFire() {
 	return bCanFire;
 }
 
-
-
 FProjectileData UWeapon::GetProjectileData(){
 	return projectileData;
 }
-
 
 void UWeapon::SetProjectileData(FProjectileData newVal){
 	projectileData = newVal;

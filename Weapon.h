@@ -5,11 +5,6 @@
 #include "ProjectileData.h"
 #include "Weapon.generated.h"
 
-
-class ABaseProjectile;
-/**
- *
- */
 UCLASS()
 class TEMPORALFLUXARENA_API UWeapon : public UShipAttachment
 {
@@ -20,35 +15,30 @@ public:
 
 	bool Fire(class AShip* owner, FVector FireDirection);
 
+	static UWeapon* CreateWeapon(AActor* other, float fireRate, FVector offset);
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		float weaponFireRate;
+
 	/** Sound to play each time we fire */
 	UPROPERTY(Category = Audio, EditAnywhere, BlueprintReadWrite)
 	class USoundBase* fireSound;
 
-	static UWeapon* CreateWeapon(AActor* other, int ammo, int fireRate, int ammoRechargeRate, FVector offset);
-
-	int GetAmmo();
-
-	float GetAmmoRechargeRate();
-
-	float GetFireRate();
-
 	void SetFireRate(float newRate);
 
 	bool CanFire();
-
+	bool bCanFire;
 	void ResetCanFire();
+	float GetFireRate();
 
 	void Fired(UWorld* const World);
-	FProjectileData GetProjectileData();
 	void SetProjectileData(FProjectileData newVal);
 
-	bool bCanFire;
+	FProjectileData GetProjectileData();
 
 	/** Handle for efficient management of ShotTimerExpired timer */
 	FTimerHandle TimerHandle_ShotTimerExpired;
 private:
-	int ammo;
-	float fireRate;
-	float ammoRechargeRate;
 	FProjectileData projectileData;
 };
