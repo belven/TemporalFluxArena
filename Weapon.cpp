@@ -52,7 +52,7 @@ bool UWeapon::Fire(AShip* owner, FVector FireDirection) {
 }
 
 void UWeapon::Fired(UWorld* const World){
-	if (World) {
+	if (World && bCanFire) {
 		bCanFire = false;
 		World->GetTimerManager().SetTimer(TimerHandle_ShotTimerExpired, this, &UWeapon::ResetCanFire, weaponFireRate);
 	}

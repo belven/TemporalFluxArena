@@ -20,9 +20,7 @@ public:
 
 	void ResetMovementSpeed();
 
-	AShip* owner;
 
-	float oringinalSpeed;
 
 
 	FTimerHandle TimerHandle_BoostExpired;

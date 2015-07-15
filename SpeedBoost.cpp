@@ -8,7 +8,6 @@
 
 void USpeedBoost::Activate(AShip* owner){
 	this->owner = owner;
-	oringinalSpeed = owner->MoveSpeed;
 	owner->MoveSpeed *= 1.75;
 	owner->GetWorld()->GetTimerManager().ClearTimer(TimerHandle_BoostExpired);
 	owner->GetWorld()->GetTimerManager().SetTimer(TimerHandle_BoostExpired, this, &USpeedBoost::ResetMovementSpeed, GetCooldown());
@@ -16,7 +15,7 @@ void USpeedBoost::Activate(AShip* owner){
 
 void USpeedBoost::ResetMovementSpeed(){
 	if (owner){
-		owner->MoveSpeed = oringinalSpeed;
+		owner->MoveSpeed = owner->originalData.movementSpeed;
 	}
 }
 

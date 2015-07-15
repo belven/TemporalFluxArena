@@ -2,7 +2,11 @@
 
 #include "TemporalFluxArena.h"
 #include "ShipController.h"
+#include "Ship.h"
 
 
 
-
+AShipController::AShipController()
+{
+	bShowMouseCursor = true;
+}

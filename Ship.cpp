@@ -59,9 +59,9 @@ void AShip::OnRep_RotationChanged()
 }
 
 void AShip::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const {
-	DOREPLIFETIME(AShip, health);
-	DOREPLIFETIME(AShip, shield);
-	DOREPLIFETIME(AShip, energy);
+	//DOREPLIFETIME(AShip, health);
+	//DOREPLIFETIME(AShip, shield);
+	//DOREPLIFETIME(AShip, energy);
 	DOREPLIFETIME(AShip, location);
 	DOREPLIFETIME(AShip, rotation);
 }
@@ -69,6 +69,7 @@ void AShip::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetime
 void AShip::PossessedBy(class AController* NewController){
 	if (NewController->GetClass()->IsChildOf(AShipController::StaticClass())){
 		Cast<AShipController>(NewController)->owningShip = this;
+		shipController = Cast<AShipController>(NewController);
 	}
 }
 
@@ -80,51 +81,67 @@ void AShip::BeginPlay()
 	// Movement
 	MoveSpeed = 1000.0f;
 
-	maxHealth = 100.0f;
-	maxShield = 100.0f;
-	maxEnergy = 150.0f;
+	//Starting ship data to retain original stats
+	originalData.maxHealth = 100.0f;
+	originalData.maxShields = 100.0f;
+	originalData.maxEnergy = 150.0f;
 
-	health = maxHealth;
-	shield = maxShield;
-	energy = maxEnergy;
+	originalData.health = originalData.maxHealth;
+	originalData.shields = originalData.maxShields;
+	originalData.energy = originalData.maxEnergy;
 
-	shieldRegen = 20;
-	energyRegen = 15;
+	originalData.shieldRegen = 20;
+	originalData.energyRegen = 15;
+	originalData.movementSpeed = 1000;
+
+	//Current Ship data to allow for modifications
+	currentData.maxHealth = originalData.maxHealth;
+	currentData.maxShields = originalData.maxShields;
+	currentData.maxEnergy = originalData.maxEnergy;
+
+	currentData.health = originalData.maxHealth;
+	currentData.shields = originalData.maxShields;
+	currentData.energy = originalData.maxEnergy;
+
+	currentData.shieldRegen = originalData.shieldRegen;
+	currentData.energyRegen = originalData.energyRegen;
+	currentData.movementSpeed = originalData.movementSpeed;
 
 	canRegenShields = true;
 	canRegenEnergy = true;
 
 	FProjectileData data;
 	data.cost = 20;
-	data.damage = 60;
+	data.damage = 80;
 	data.speed = 1.2;
 
 	weapons = *new TArray<UWeapon*>();
-
 	weapons.Add(UWeapon::CreateWeapon(this, 1, FVector(90.f, 0.f, 0.f)));
 
 	weapons[0]->SetProjectileData(data);
 
-	data.cost = 1;
-	data.damage = 5;
+	data.cost = 5;
+	data.damage = 2;
 	data.speed = 4;
 
 	weapons.Add(UWeapon::CreateWeapon(this, 0.1, FVector(90.f, 0.f, 0.f)));
 	weapons[1]->SetProjectileData(data);
 
 
-	weapons.Add(UWeapon::CreateWeapon(this, 0.5, FVector(90.f, 0.f, 0.f)));
+	weapons.Add(UWeapon::CreateWeapon(this, 2, FVector(90.f, 0.f, 0.f)));
 	weapons[2]->SetProjectileData(data);
 
-	data.cost = 10;
-	data.damage = 15;
-	data.speed = 2;
+	data.cost = 15;
+	data.damage = 120;
+	data.speed = 6;
 
 	currentWeapon = weapons[0];
 
 	abilities = *new TArray<UAbility*>();
 	abilities.Add(USpeedBoost::CreateAbility());
 	abilities[0]->SetCooldown(3);
+
+	firing = false;
 }
 
 void AShip::SetupPlayerInputComponent(class UInputComponent* InputComponent)
@@ -141,6 +158,8 @@ void AShip::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 	InputComponent->BindAction("WeaponOne", EInputEvent::IE_Released, this, &AShip::WeaponOne);
 	InputComponent->BindAction("WeaponTwo", EInputEvent::IE_Released, this, &AShip::WeaponTwo);
 	InputComponent->BindAction("WeaponThree", EInputEvent::IE_Released, this, &AShip::WeaponThree);
+	InputComponent->BindAction("LMBD", EInputEvent::IE_Released, this, &AShip::StopFire);
+	InputComponent->BindAction("LMBD", EInputEvent::IE_Pressed, this, &AShip::StartFire);	
 }
 
 void AShip::ActivateAbility() {
@@ -153,26 +172,26 @@ void AShip::ActivateAbility() {
 }
 
 void AShip::Regenerate(float DeltaSeconds) {
-	if (canRegenShields && shield < maxShield && energy > 0){
-		float amount = shieldRegen * (DeltaSeconds / 1);
+	if (canRegenShields && GetShield() < GetMaxShield() && GetEnergy() > 0){
+		float amount = GetShieldRegen() * (DeltaSeconds / 1);
 
-		if (amount + shield < maxShield){
-			shield += amount;
-			energy -= amount;
+		if (amount + GetShield() < GetMaxShield()){
+			currentData.shields += amount;
+			currentData.energy -= amount;
 		}
 		else {
-			energy -= (maxShield - shield);
-			shield = maxShield;
+			currentData.energy -= (GetMaxShield() - GetShield());
+			currentData.shields = GetMaxShield();
 		}
 	}
-	else if (canRegenEnergy && energy < maxEnergy){
-		float amount = energyRegen * (DeltaSeconds / 1);
+	else if (canRegenEnergy && GetEnergy() < GetMaxEnergy()){
+		float amount = GetEnergyRegen() * (DeltaSeconds / 1);
 
-		if (amount + energy < maxEnergy){
-			energy += amount;
+		if (amount + currentData.energy < GetMaxEnergy()){
+			currentData.energy += amount;
 		}
 		else {
-			energy = maxEnergy;
+			currentData.energy = GetMaxEnergy();
 		}
 	}
 }
@@ -181,26 +200,23 @@ void AShip::Move(float DeltaSeconds){
 	// Find movement direction
 	const float ForwardValue = GetInputAxisValue(MoveForwardBinding);
 	const float RightValue = GetInputAxisValue(MoveRightBinding);
-
-	// Clamp max size so that (X=1, Y=1) doesn't cause faster movement in diagonal directions
-	const FVector MoveDirection = FVector(ForwardValue, RightValue, 0.f).GetClampedToMaxSize(1.0f);
-
+	
 	// Calculate movement
-	const FVector Movement = MoveDirection * MoveSpeed * DeltaSeconds;
+	const FVector Movement = GetRootComponent()->GetForwardVector() * ForwardValue * MoveSpeed * DeltaSeconds;
 
 	// If non-zero size, move this actor
-	if (Movement.SizeSquared() > 0.0f)
+	if (ForwardValue != 0)
 	{
-		const FRotator NewRotation = Movement.Rotation();
-		FHitResult Hit(10.f);
+		FRotator NewRotation = GetRootComponent()->GetComponentRotation();
+		FHitResult Hit(1.f);
 		RootComponent->MoveComponent(Movement, NewRotation, true, &Hit);
 
-		//if (Hit.IsValidBlockingHit())
-		//{
-		const FVector Normal2D = Hit.Normal.GetSafeNormal2D();
-		const FVector Deflection = FVector::VectorPlaneProject(Movement, Normal2D) * (1.f - Hit.Time);
-		RootComponent->MoveComponent(Deflection, NewRotation, true);
-		//}
+		if (Hit.IsValidBlockingHit())
+		{
+			const FVector Normal2D = Hit.Normal.GetSafeNormal2D();
+			const FVector Deflection = FVector::VectorPlaneProject(Movement, Normal2D) * (1.f - Hit.Time);
+			RootComponent->MoveComponent(Deflection, NewRotation, true);
+		}
 	}
 }
 
@@ -212,10 +228,20 @@ void AShip::Tick(float DeltaSeconds)
 	Regenerate(DeltaSeconds);
 	Move(DeltaSeconds);
 
+	FVector mouseLocation, mouseDirection;
+	shipController->DeprojectMousePositionToWorld(mouseLocation, mouseDirection);
+
+	FRotator currentCharacterRotation = GetRootComponent()->GetComponentRotation();
+	FRotator targetRotation = mouseDirection.Rotation();
+
+	FRotator newRotation = FRotator(currentCharacterRotation.Pitch, targetRotation.Yaw, currentCharacterRotation.Roll);
+
+	GetRootComponent()->SetWorldRotation(newRotation);
+
 	// Create fire direction vector
 	const float FireForwardValue = GetInputAxisValue(FireForwardBinding);
 	const float FireRightValue = GetInputAxisValue(FireRightBinding);
-	const FVector FireDirection = FVector(FireForwardValue, FireRightValue, 0.f);
+	const FVector FireDirection = newRotation.Vector(); 
 
 	// Try and fire a shot
 	FireShot(FireDirection);
@@ -228,12 +254,12 @@ void AShip::Tick(float DeltaSeconds)
  */
 void AShip::FireShot(FVector FireDirection)
 {
-	if (currentWeapon != NULL && currentWeapon->CanFire() && energy > currentWeapon->GetProjectileData().cost)
+	if (firing && currentWeapon != NULL && currentWeapon->CanFire() && GetEnergy() > currentWeapon->GetProjectileData().cost)
 	{
 		if (currentWeapon->Fire(this, FireDirection)){
 
 			canRegenEnergy = false;
-			energy -= currentWeapon->GetProjectileData().cost;
+			currentData.energy -= currentWeapon->GetProjectileData().cost;
 
 			GetWorld()->GetTimerManager().ClearTimer(TimerHandle_CanRegenEnergyExpired);
 			GetWorld()->GetTimerManager().SetTimer(TimerHandle_CanRegenEnergyExpired, this, &AShip::ResetCanRegenEnergy, 1.5);
@@ -258,22 +284,22 @@ void AShip::CalculateDamage(float damage){
 	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_CanRegenShieldsExpired);
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle_CanRegenShieldsExpired, this, &AShip::ResetCanRegenShields, 1.5);
 
-	if (shield > 0){
-		if (shield - damage > 0){
-			shield -= damage;
+	if (GetShield() > 0){
+		if (GetShield() - damage > 0){
+			currentData.shields -= damage;
 		}
 		else {
-			damage -= shield;
-			shield = 0;
-			health -= damage;
+			damage -= GetShield();
+			currentData.shields = 0;
+			currentData.health -= damage;
 		}
 	}
-	else if (health - damage < 0){
+	else if (GetHealth() - damage < 0){
 		//Destroy();
 		//SetActorHiddenInGame(true);
 	}
 	else {
-		health -= damage;
+		currentData.health -= damage;
 	}
 }
 
@@ -285,17 +311,16 @@ void AShip::ResetCanRegenEnergy(){
 	canRegenEnergy = true;
 }
 
-
 float AShip::GetHealth(){
-	return health;
+	return currentData.health;
 }
 
 float AShip::GetShield(){
-	return shield;
+	return currentData.shields;
 }
 
 float AShip::GetEnergy(){
-	return energy;
+	return currentData.energy;
 }
 
 void AShip::UpdateStats(){
@@ -303,86 +328,78 @@ void AShip::UpdateStats(){
 	rotation = RootComponent->GetComponentRotation();
 }
 
-
 void AShip::OnRep_EnergyChanged(){
 
 }
-
 
 void AShip::OnRep_HealthChanged(){
 
 }
 
-
 void AShip::OnRep_ShieldsChanged(){
 
 }
-
 
 void AShip::WeaponOne(){
 	currentWeapon = weapons[0];
 }
 
-
 void AShip::WeaponThree(){
 	currentWeapon = weapons[1];
 }
-
 
 void AShip::WeaponTwo(){
 	currentWeapon = weapons[2];
 }
 
-
 void AShip::SetEnergy(float newVal){
-
-	energy = newVal;
+	currentData.energy = newVal;
 }
-
 
 void AShip::SetHealth(float newVal){
-
-	health = newVal;
+	currentData.health = newVal;
 }
-
 
 void AShip::SetShield(float newVal){
-
-	shield = newVal;
+	currentData.shields = newVal;
 }
-
 
 float AShip::GetMaxEnergy(){
-
-	return maxEnergy;
+	return currentData.maxEnergy;
 }
-
 
 float AShip::GetMaxHealth(){
-
-	return maxHealth;
+	return currentData.maxHealth;
 }
-
 
 float AShip::GetMaxShield(){
-
-	return maxShield;
+	return currentData.maxShields;
 }
-
 
 void AShip::SetMaxEnergy(float newVal){
-
-	maxEnergy = newVal;
+	currentData.maxEnergy = newVal;
 }
-
 
 void AShip::SetMaxHealth(float newVal){
-
-	maxHealth = newVal;
+	currentData.maxHealth = newVal;
 }
 
-
 void AShip::SetMaxShield(float newVal){
+	currentData.maxShields = newVal;
+}
 
-	maxShield = newVal;
+float AShip::GetEnergyRegen(){
+	return currentData.energyRegen;
+}
+
+float AShip::GetShieldRegen(){
+	return currentData.shieldRegen;
+}
+
+void AShip::StartFire(){
+	firing = true;
+}
+
+void AShip::StopFire(){
+	firing = false;
 }

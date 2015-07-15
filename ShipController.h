@@ -3,7 +3,6 @@
 #pragma once
 
 #include "GameFramework/PlayerController.h"
-#include "Ship.h"
 #include "ShipController.generated.h"
 
 /**
@@ -16,7 +15,7 @@ class TEMPORALFLUXARENA_API AShipController : public APlayerController
 	
 public:
 	UPROPERTY(Category = Gameplay, EditAnywhere, BlueprintReadWrite)
-	AShip* owningShip;
+	class AShip* owningShip;
 	
-	
+	AShipController();
 };

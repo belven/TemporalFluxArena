@@ -3,6 +3,8 @@
 
 #include "GameFramework/Character.h"
 #include "BaseHUD.h"
+#include "ShipData.h"
+#include "ShipController.h"
 #include "Ship.generated.h"
 
 class ABaseProjectile;
@@ -30,15 +32,6 @@ class AShip : public APawn
 
 public:
 	AShip();
-	UPROPERTY(replicated)
-		float health;
-
-	UPROPERTY(replicated)
-		float shield;
-
-	UPROPERTY(replicated)
-		float energy;
-
 	UPROPERTY(ReplicatedUsing = OnRep_LocationChanged, replicated)
 		FVector location;
 
@@ -131,24 +124,22 @@ public:
 
 	UFUNCTION()
 		void ResetCanFire();
+	float GetEnergyRegen();
+	float GetShieldRegen();
+	void StartFire();
+	void StopFire();
+
+	FShipData originalData;
+	FShipData currentData;
 private:
-
-	float maxHealth;
-	float maxShield;
-	float maxEnergy;
-
-	float shieldRegen;
-	float energyRegen;
-
 	bool canRegenShields;
 	bool canRegenEnergy;
 	
 	TArray<UWeapon*> weapons;
 	TArray<UAbility*> abilities;
-
 	UWeapon* currentWeapon;
-
 	UMovementComponent* movement;
+	AShipController* shipController;
 
 	void Regenerate(float DeltaSeconds);
 
@@ -161,5 +152,6 @@ private:
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 
 	ABaseHUD* hud;
+	bool firing;
 };
 

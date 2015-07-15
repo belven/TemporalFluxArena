@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Object.h"
+#include "Ship.h"
 #include "Ability.generated.h"
 
 /**
@@ -18,6 +19,7 @@ private:
 	bool onCooldown;
 
 public:
+	AShip* owner;
 
 	void SetOnCooldown(UWorld* const World);
 	bool GetOnCooldown();
