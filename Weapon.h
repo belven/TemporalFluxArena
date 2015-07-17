@@ -15,7 +15,7 @@ public:
 
 	bool Fire(class AShip* owner, FVector FireDirection);
 
-	static UWeapon* CreateWeapon(AActor* other, float fireRate, FVector offset);
+	static UWeapon* CreateWeapon(AActor* other, float fireRate, FVector offset, FProjectileData data);
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

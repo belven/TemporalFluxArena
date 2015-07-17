@@ -46,6 +46,32 @@ AShip::AShip()
 	bReplicateMovement = true;
 
 	location = FVector(0, 0, 0);
+	
+	FProjectileData data;
+	data.cost = 20;
+	data.damage = 80;
+	data.speed = 1.2;
+
+	weapons = *new TArray<UWeapon*>();
+	weapons.Empty();
+
+	weapons.Add(UWeapon::CreateWeapon(this, 1, FVector(90.f, 0.f, 0.f), data));
+
+	data.cost = 5;
+	data.damage = 2;
+	data.speed = 4;
+	weapons.Add(UWeapon::CreateWeapon(this, 0.1, FVector(90.f, 0.f, 0.f), data));
+
+	data.cost = 15;
+	data.damage = 120;
+	data.speed = 6;
+	weapons.Add(UWeapon::CreateWeapon(this, 2, FVector(90.f, 0.f, 0.f), data));
+
+	currentWeapon = weapons[0];
+
+	abilities = *new TArray<UAbility*>();
+	abilities.Add(USpeedBoost::CreateAbility());
+	abilities[0]->SetCooldown(3);
 }
 
 void AShip::OnRep_LocationChanged()
@@ -109,38 +135,6 @@ void AShip::BeginPlay()
 
 	canRegenShields = true;
 	canRegenEnergy = true;
-
-	FProjectileData data;
-	data.cost = 20;
-	data.damage = 80;
-	data.speed = 1.2;
-
-	weapons = *new TArray<UWeapon*>();
-	weapons.Add(UWeapon::CreateWeapon(this, 1, FVector(90.f, 0.f, 0.f)));
-
-	weapons[0]->SetProjectileData(data);
-
-	data.cost = 5;
-	data.damage = 2;
-	data.speed = 4;
-
-	weapons.Add(UWeapon::CreateWeapon(this, 0.1, FVector(90.f, 0.f, 0.f)));
-	weapons[1]->SetProjectileData(data);
-
-
-	weapons.Add(UWeapon::CreateWeapon(this, 2, FVector(90.f, 0.f, 0.f)));
-	weapons[2]->SetProjectileData(data);
-
-	data.cost = 15;
-	data.damage = 120;
-	data.speed = 6;
-
-	currentWeapon = weapons[0];
-
-	abilities = *new TArray<UAbility*>();
-	abilities.Add(USpeedBoost::CreateAbility());
-	abilities[0]->SetCooldown(3);
-
 	firing = false;
 }
 
@@ -226,8 +220,22 @@ void AShip::Move(float DeltaSeconds){
 void AShip::Tick(float DeltaSeconds)
 {
 	Regenerate(DeltaSeconds);
+	UpdateRotation();
 	Move(DeltaSeconds);
 
+	// Create fire direction vector
+	const float FireForwardValue = GetInputAxisValue(FireForwardBinding);
+	const float FireRightValue = GetInputAxisValue(FireRightBinding);
+	const FVector FireDirection = GetRootComponent()->GetComponentRotation().Vector();
+
+	// Try and fire a shot
+	FireShot(FireDirection);
+
+	UpdateStats();
+}
+
+
+void AShip::UpdateRotation(){
 	FVector mouseLocation, mouseDirection;
 	shipController->DeprojectMousePositionToWorld(mouseLocation, mouseDirection);
 
@@ -237,16 +245,6 @@ void AShip::Tick(float DeltaSeconds)
 	FRotator newRotation = FRotator(currentCharacterRotation.Pitch, targetRotation.Yaw, currentCharacterRotation.Roll);
 
 	GetRootComponent()->SetWorldRotation(newRotation);
-
-	// Create fire direction vector
-	const float FireForwardValue = GetInputAxisValue(FireForwardBinding);
-	const float FireRightValue = GetInputAxisValue(FireRightBinding);
-	const FVector FireDirection = newRotation.Vector(); 
-
-	// Try and fire a shot
-	FireShot(FireDirection);
-
-	UpdateStats();
 }
 
 /**
@@ -402,4 +400,9 @@ void AShip::StartFire(){
 
 void AShip::StopFire(){
 	firing = false;
+}
+
+void AShip::SetSpeed(float newSpeed){
+	MoveSpeed = newSpeed;
+	currentData.movementSpeed = newSpeed;
 }

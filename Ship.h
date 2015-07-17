@@ -128,6 +128,8 @@ public:
 	float GetShieldRegen();
 	void StartFire();
 	void StopFire();
+	void UpdateRotation();
+	void SetSpeed(float newSpeed);
 
 	FShipData originalData;
 	FShipData currentData;

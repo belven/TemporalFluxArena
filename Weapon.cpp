@@ -54,14 +54,15 @@ bool UWeapon::Fire(AShip* owner, FVector FireDirection) {
 void UWeapon::Fired(UWorld* const World){
 	if (World && bCanFire) {
 		bCanFire = false;
-		World->GetTimerManager().SetTimer(TimerHandle_ShotTimerExpired, this, &UWeapon::ResetCanFire, weaponFireRate);
+		World->GetTimerManager().SetTimer(TimerHandle_ShotTimerExpired, this, &UWeapon::ResetCanFire, weaponFireRate > 0 ? weaponFireRate : 0.1);
 	}
 }
 
-UWeapon* UWeapon::CreateWeapon(AActor* other, float fireRate,  FVector offset) {
+UWeapon* UWeapon::CreateWeapon(AActor* other, float fireRate, FVector offset, FProjectileData data) {
 	UWeapon* newWeapon = NewObject<UWeapon>(UWeapon::StaticClass());
 	newWeapon->SetFireRate(fireRate);
 	newWeapon->offset = offset;
+	newWeapon->projectileData = data;
 	return newWeapon;
 }
 
