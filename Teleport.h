@@ -14,7 +14,7 @@ class TEMPORALFLUXARENA_API UTeleport : public UAbility
 	GENERATED_BODY()
 
 public:
-	virtual void Activate(class AShip* owner) override;
+	virtual void Activate(class AShip* abilityOwner) override;
 
 	static UTeleport* CreateAbility();
 };

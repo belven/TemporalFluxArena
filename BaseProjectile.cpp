@@ -44,11 +44,11 @@ void ABaseProjectile::BeginPlay()
 /**
  * Function to handle the projectile hitting something
  */
-void ABaseProjectile::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+void ABaseProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
 {
 
 	// Only add impulse and destroy projectile if we hit a physics
-	if ((OtherActor != NULL) && (OtherActor != this) && (OtherComp != NULL))
+	if ((OtherActor != NULL) && (OtherActor != this))
 	{
 		UClass* otherClass = OtherActor->GetClass();
 		/*if (OtherComp->IsSimulatingPhysics()) {

@@ -35,7 +35,7 @@ bool UWeapon::Fire(AShip* owner, FVector FireDirection) {
 			// spawn the projectile
 			ABaseProjectile* projectile = World->SpawnActor<ABaseProjectile>(SpawnLocation, FireRotation);
 			projectile->SetDamage(projectileData.damage);
-			projectile->SetSpeed(owner->MoveSpeed * projectileData.speed);
+			projectile->SetSpeed(owner->GetMoveSpeed() * projectileData.speed);
 
 			Fired(World);
 
@@ -51,10 +51,10 @@ bool UWeapon::Fire(AShip* owner, FVector FireDirection) {
 	return false;
 }
 
-void UWeapon::Fired(UWorld* const World){
-	if (World && bCanFire) {
+void UWeapon::Fired(UWorld* world){
+	if (world != nullptr && bCanFire) {
 		bCanFire = false;
-		World->GetTimerManager().SetTimer(TimerHandle_ShotTimerExpired, this, &UWeapon::ResetCanFire, weaponFireRate > 0 ? weaponFireRate : 0.1);
+		world->GetTimerManager().SetTimer(TimerHandle_ShotTimerExpired, this, &UWeapon::ResetCanFire, weaponFireRate > 0 ? weaponFireRate : 0.1);
 	}
 }
 

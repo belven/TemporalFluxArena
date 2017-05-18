@@ -32,7 +32,7 @@ public:
 	void ResetCanFire();
 	float GetFireRate();
 
-	void Fired(UWorld* const World);
+	void Fired(UWorld* world);
 	void SetProjectileData(FProjectileData newVal);
 
 	FProjectileData GetProjectileData();

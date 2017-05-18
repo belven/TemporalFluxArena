@@ -28,7 +28,7 @@ public:
 	float GetCooldown();
 	void SetCooldown(float newCooldown);
 
-	virtual void Activate(class AShip* owner) { check(0 && "You must override this") };
+	virtual void Activate(class AShip* abilityOwner) { check(0 && "You must override this") };
 
 	static UAbility* CreateAbility();
 

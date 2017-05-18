@@ -14,7 +14,7 @@ class TEMPORALFLUXARENA_API USpeedBoost : public UAbility
 	GENERATED_BODY()
 
 public:
-	virtual void Activate(AShip* owner) override;
+	virtual void Activate(class AShip* abilityOwner) override;
 
 	static USpeedBoost* CreateAbility();
 

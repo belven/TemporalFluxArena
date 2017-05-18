@@ -12,41 +12,28 @@ class UWeapon;
 class UAbility;
 
 UCLASS(Blueprintable)
-class AShip : public APawn
+class AShip : public ACharacter
 {
 	GENERATED_BODY()
 
 		/* The mesh component */
 		UPROPERTY(Category = Mesh, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class UStaticMeshComponent* ShipMeshComponent;
+		class UStaticMeshComponent* ShipMeshComponent;
 
 	/** The camera */
 	UPROPERTY(Category = Camera, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class UCameraComponent* CameraComponent;
+		class UCameraComponent* CameraComponent;
 
 	/** Camera boom positioning the camera above the character */
 	UPROPERTY(Category = Camera, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class USpringArmComponent* CameraBoom;
+		class USpringArmComponent* CameraBoom;
 
 	USphereComponent* aoeDecetion;
 
 public:
 	AShip();
-	UPROPERTY(ReplicatedUsing = OnRep_LocationChanged, replicated)
-		FVector location;
-
-	UPROPERTY(ReplicatedUsing = OnRep_RotationChanged, replicated)
-		FRotator rotation;
-
-	UFUNCTION()
-		void OnRep_LocationChanged();
-
-	UFUNCTION()
-		void OnRep_RotationChanged();
-
-	/* The speed our ship moves around the level */
-	UPROPERTY(Category = Gameplay, EditAnywhere, BlueprintReadWrite)
-		float MoveSpeed;
+	
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	// Begin Actor Interface
 	virtual void Tick(float DeltaSeconds) override;
@@ -75,6 +62,13 @@ public:
 
 	FTimerHandle TimerHandle_CanRegenEnergyExpired;
 
+	USphereComponent* GetAoeDetection();
+	UFUNCTION()
+		void ActivateAbility();
+
+		UFUNCTION(Client, Reliable, BlueprintCallable, Category = "stats")
+		void UpdateStats();
+
 	UFUNCTION(BlueprintCallable, Category = "Stats")
 		float GetHealth();
 
@@ -92,68 +86,124 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 
 	void HitByProjectile(ABaseProjectile* damager);
-	USphereComponent* GetAoeDetection();
-
-	void ActivateAbility();
-	void UpdateStats();
 
 	void OnRep_EnergyChanged();
 	void OnRep_HealthChanged();
 	void OnRep_ShieldsChanged();
 
-	void WeaponOne();
-	void WeaponThree();
-	void WeaponTwo();
+	UFUNCTION()
+		void WeaponOne();
 
-	void SetEnergy(float newVal);
-	void SetHealth(float newVal);
-	void SetShield(float newVal);
+	UFUNCTION()
+		void WeaponThree();
 
-	float GetMaxEnergy();
-	float GetMaxHealth();
-	float GetMaxShield();
+	UFUNCTION()
+		void WeaponTwo();
 
-	void SetMaxEnergy(float newVal);
-	void SetMaxHealth(float newVal);
-	void SetMaxShield(float newVal);
+	UFUNCTION()
+		void SetEnergy(float newVal);
 
+	UFUNCTION()
+		void SetHealth(float newVal);
 
-	/** Handle for efficient management of ShotTimerExpired timer */
-	FTimerHandle TimerHandle_ShotTimerExpired;
+	UFUNCTION()
+		void SetShield(float newVal);
+
+	UFUNCTION()
+		float GetMaxEnergy();
+
+	UFUNCTION()
+		float GetMaxHealth();
+
+	UFUNCTION()
+		float GetMaxShield();
+
+	UFUNCTION()
+		void SetMaxEnergy(float newVal);
+
+	UFUNCTION()
+		void SetMaxHealth(float newVal);
+
+	UFUNCTION()
+		void SetMaxShield(float newVal);
 
 
 	UFUNCTION()
 		void ResetCanFire();
-	float GetEnergyRegen();
-	float GetShieldRegen();
-	void StartFire();
-	void StopFire();
-	void UpdateRotation();
-	void SetSpeed(float newSpeed);
 
-	FShipData originalData;
-	FShipData currentData;
+	UFUNCTION()
+		float GetEnergyRegen();
+
+	UFUNCTION()
+		float GetShieldRegen();
+
+	UFUNCTION()
+		void StartFire();
+
+	UFUNCTION()
+		void StopFire();
+
+	UFUNCTION()
+		void UpdateRotation();
+
+	UFUNCTION()
+		void SetSpeed(float newSpeed);
+
+	FShipData getOriginalData() const { return originalData; }
+	FShipData getCurrentData() const { return currentData; }
+
+	float GetMoveSpeed() const { return MoveSpeed; }
+	void SetMoveSpeed(float val) { MoveSpeed = val; }
 private:
-	bool canRegenShields;
-	bool canRegenEnergy;
+	/** Handle for efficient management of ShotTimerExpired timer */
+	FTimerHandle TimerHandle_ShotTimerExpired;
 	
-	TArray<UWeapon*> weapons;
-	TArray<UAbility*> abilities;
-	UWeapon* currentWeapon;
-	UMovementComponent* movement;
-	AShipController* shipController;
+	/* The speed our ship moves around the level */
+	UPROPERTY(Replicated, Category = Gameplay, EditAnywhere)
+		float MoveSpeed;
 
-	void Regenerate(float DeltaSeconds);
+	UPROPERTY()
+		ABaseHUD* hud;
 
-	void ResetCanRegenShields();
+	UPROPERTY()
+		bool firing;
 
-	void ResetCanRegenEnergy();
+	UPROPERTY(Replicated, EditAnywhere,  Category = "Stats")
+		FShipData originalData;
 
-	void Move(float DeltaSeconds);
+	UPROPERTY(Replicated, EditAnywhere,  Category = "Stats")
+		FShipData currentData;
+	
+	UPROPERTY()
+		bool canRegenShields;
 
-	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
+	UPROPERTY()
+		bool canRegenEnergy;
 
-	ABaseHUD* hud;
-	bool firing;
-};
+	UPROPERTY()
+		TArray<UWeapon*> weapons;
 
+	UPROPERTY()
+		TArray<UAbility*> abilities;
+
+	UPROPERTY()
+		UWeapon* currentWeapon;
+/*
+	UPROPERTY()
+		UMovementComponent* movement;*/
+
+	UPROPERTY()
+		AShipController* shipController;
+
+	UFUNCTION()
+		void Regenerate(float DeltaSeconds);
+
+	UFUNCTION()
+		void ResetCanRegenShields();
+
+	UFUNCTION()
+		void ResetCanRegenEnergy();
+
+	UFUNCTION()
+		void Move(float DeltaSeconds);
+	};

@@ -4,16 +4,16 @@
 #include "SpeedBoost.h"
 #include "Ship.h"
 
-void USpeedBoost::Activate(AShip* owner){
-	this->owner = owner;
-	owner->SetSpeed(owner->MoveSpeed * 1.75);
-	owner->GetWorld()->GetTimerManager().ClearTimer(TimerHandle_BoostExpired);
-	owner->GetWorld()->GetTimerManager().SetTimer(TimerHandle_BoostExpired, this, &USpeedBoost::ResetMovementSpeed, GetCooldown());
+void USpeedBoost::Activate(class AShip* abilityOwner){
+	this->owner = abilityOwner;
+	abilityOwner->SetSpeed(abilityOwner->GetMoveSpeed() * 1.75);
+	abilityOwner->GetWorld()->GetTimerManager().ClearTimer(TimerHandle_BoostExpired);
+	abilityOwner->GetWorld()->GetTimerManager().SetTimer(TimerHandle_BoostExpired, this, &USpeedBoost::ResetMovementSpeed, GetCooldown());
 }
 
 void USpeedBoost::ResetMovementSpeed(){
 	if (owner){
-		owner->SetSpeed(owner->originalData.movementSpeed);
+		owner->SetSpeed(owner->getOriginalData() .movementSpeed);
 	}
 }
 

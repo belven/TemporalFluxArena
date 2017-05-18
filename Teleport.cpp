@@ -7,9 +7,9 @@
 
 
 
-void UTeleport::Activate(AShip* owner){
+void UTeleport::Activate(class AShip* abilityOwner){
 	// Clamp max size so that (X=1, Y=1) doesn't cause faster movement in diagonal directions
-	const FVector MoveDirection = owner->GetActorRotation().Vector().GetClampedToMaxSize(1.0f);
+	const FVector MoveDirection = abilityOwner->GetActorRotation().Vector().GetClampedToMaxSize(1.0f);
 
 	// Calculate movement
 	const FVector Movement = MoveDirection * 1200;
@@ -19,14 +19,14 @@ void UTeleport::Activate(AShip* owner){
 	{
 		const FRotator NewRotation = Movement.Rotation();
 		FHitResult Hit(1.f);
-		owner->GetRootComponent()->MoveComponent(Movement, NewRotation, true, &Hit);
+		abilityOwner->GetRootComponent()->MoveComponent(Movement, NewRotation, true, &Hit);
 
 		if (Hit.IsValidBlockingHit())
 		{
 			const FVector Normal2D = Hit.Normal.GetSafeNormal2D();
 			const FVector Deflection = FVector::VectorPlaneProject(Movement, Normal2D) * (1.f - Hit.Time);
-			owner->GetRootComponent()->MoveComponent(Deflection, NewRotation, true);
-			owner->UpdateStats();
+			abilityOwner->GetRootComponent()->MoveComponent(Deflection, NewRotation, true);
+			abilityOwner->UpdateStats();
 		}
 	}
 }
